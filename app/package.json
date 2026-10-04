@@ -1,0 +1,12 @@
+{
+  "name": "t800-control-panel",
+  "version": "0.1.0",
+  "description": "T800 Pro 全关节控制面板（经 Orin 中转 TCP -> 机器人 ROS2 bridge）",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^38.0.0"
+  }
+}

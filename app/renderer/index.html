@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T800 Pro 控制面板</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="topbar">
+  <div class="brand">T800 Pro <span>控制面板</span></div>
+  <div class="views">
+    <button id="viewBtnJoints" class="viewbtn active">关节控制</button>
+    <button id="viewBtnVision" class="viewbtn">雷达 / 相机</button>
+  </div>
+  <div class="conn part-joint">
+    <input id="host" value="192.168.1.50" spellcheck="false" title="Orin 中转地址">
+    <input id="port" value="9801" class="narrow" spellcheck="false">
+    <button id="btnConnect">连接</button>
+    <button id="btnDisconnect" disabled>断开</button>
+  </div>
+  <div class="pills">
+    <span class="pill part-joint" id="pillConn"><i class="dot"></i>未连接</span>
+    <span class="pill part-joint" id="pillBattery" title="电池">
+      <svg width="24" height="13" viewBox="0 0 24 13" style="vertical-align:-2px">
+        <rect x="0.5" y="0.5" width="19" height="12" rx="2" fill="none" stroke="currentColor" opacity="0.55"></rect>
+        <rect x="20" y="4" width="3.5" height="5" rx="1" fill="currentColor" opacity="0.55"></rect>
+        <rect id="batFill" x="2" y="2" width="0" height="9" rx="1" fill="#3fb950"></rect>
+      </svg>
+      <b id="batText">--%</b>
+    </span>
+    <span class="pill" id="pillMic" title="机器人麦克风实时声级（dBFS，.162 环麦）">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+        <line x1="12" y1="19" x2="12" y2="23"></line>
+      </svg>
+      <span class="meter"><i id="micBar"></i><i id="micPeak"></i></span>
+      <b id="micText">--</b>
+    </span>
+    <span class="pill" id="pillAsr" title="机器人语音识别（funasr，本机离线）" style="display:none">
+      <b id="asrText"></b>
+    </span>
+    <span class="pill part-joint" id="pillMode">模式: -</span>
+    <span class="pill part-joint" id="pillEnable">电机: -</span>
+    <span class="pill part-joint" id="pillStream">下发: 关</span>
+    <span class="pill part-vision" id="pillOdin"><i class="dot"></i>雷达: 未连接</span>
+    <span class="pill part-vision" id="pillOdinStats">--</span>
+  </div>
+  <div class="spacer"></div>
+  <button id="btnToJoint" class="part-joint" disabled title="自动逐级切换运动状态到 joint_bridge（切换中机器人会动作，确保已支撑/清场）">进入关节控制</button>
+  <button id="btnStream" class="primary part-joint" disabled>开始发送</button>
+  <button id="btnHold" class="part-joint" disabled>全部跟随当前</button>
+  <button id="btnEstop" class="danger part-joint">紧急停止</button>
+</header>
+
+<div id="banner" class="hidden"></div>
+
+<main id="viewJoints">
+  <section id="joints" class="joints"></section>
+
+  <aside id="side">
+    <div class="card">
+      <h3>运动状态机</h3>
+      <div class="kv"><span>当前</span><b id="modeNow">-</b></div>
+      <div class="kv"><span>电机使能</span><b id="enableNow">-</b></div>
+      <div class="kv"><span>关节指令下发</span><b id="streamNow">关</b></div>
+      <div class="kv"><span>最大关节力矩</span><b id="tauMax">-</b></div>
+      <div class="kv"><span>最高电机温度</span><b id="tempMax">-</b></div>
+      <div class="kv"><span>连接客户端</span><b id="clientsNow">0</b></div>
+      <div class="sub">可切换目标：</div>
+      <div id="modeBtns" class="modebtns"></div>
+      <div class="hint">进入 joint_bridge 后才能控制全关节（务必吊架 + 逐步小幅）。</div>
+    </div>
+
+    <div class="card">
+      <h3>增益 / 斜率</h3>
+      <label class="slew">目标角斜率 (rad/s) <input id="slew" type="number" value="3" min="0.05" max="20" step="0.5"></label>
+      <div id="gains"></div>
+      <button id="btnApplyGains" disabled>应用增益</button>
+    </div>
+
+    <div class="card">
+      <h3>日志</h3>
+      <div id="log" class="log"></div>
+    </div>
+  </aside>
+</main>
+
+<main id="viewVision" class="hidden">
+  <section class="viz">
+    <div class="viz-toolbar">
+      <input id="oHost" value="192.168.1.50" spellcheck="false" title="Orin 中转地址">
+      <input id="oPort" value="9802" class="narrow" spellcheck="false">
+      <button id="oConnect">连接</button>
+      <button id="oDisconnect" disabled>断开</button>
+      <span class="vsep"></span>
+      <label>点云抽稀
+        <select id="oStride">
+          <option value="2">1/2</option>
+          <option value="4" selected>1/4</option>
+          <option value="6">1/6</option>
+          <option value="8">1/8</option>
+        </select>
+      </label>
+      <label>点云 Hz
+        <select id="oCloudHz">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="15">15</option>
+        </select>
+      </label>
+      <label>图像 Hz
+        <select id="oImgHz">
+          <option value="8">8</option>
+          <option value="15" selected>15</option>
+          <option value="25">25</option>
+        </select>
+      </label>
+      <label>着色
+        <select id="oColor">
+          <option value="dist" selected>按距离</option>
+          <option value="height">按高度</option>
+        </select>
+      </label>
+      <label class="vchk"><input type="checkbox" id="oPause"> 暂停渲染</label>
+      <button id="oReset">复位视角</button>
+    </div>
+    <div class="viz-body">
+      <div class="viz-left">
+        <canvas id="oCanvas"></canvas>
+        <div class="viz-hint">左键拖动旋转 · 滚轮缩放 · 双击复位 ｜ 坐标系：X 前 / Y 左 / Z 上（m），Odin2 点云（dToF，<b id="oPts">0</b> 点）</div>
+      </div>
+      <div class="viz-right">
+        <div class="cam-card">
+          <div class="cam-title">相机 0（左，640×544）<span id="oCam0Hz" class="cam-hz">--</span></div>
+          <img id="oCam0" alt="camera0">
+        </div>
+        <div class="cam-card">
+          <div class="cam-title">相机 1（右，640×544）<span id="oCam1Hz" class="cam-hz">--</span></div>
+          <img id="oCam1" alt="camera1">
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="model.js"></script>
+<script src="renderer.js"></script>
+<script src="vision.js"></script>
+<script src="mic.js"></script>
+</body>
+</html>
